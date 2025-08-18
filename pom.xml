@@ -12,8 +12,15 @@
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
         <javafx.version>17.0.2</javafx.version>
-        <tomp2p.version>7.3.1</tomp2p.version>
+        <tomp2p.version>5.0-Beta8</tomp2p.version>
     </properties>
+
+    <repositories>
+        <repository>
+            <id>tomp2p.net</id>
+            <url>http://tomp2p.net/dev/mvn/</url>
+        </repository>
+    </repositories>
 
     <dependencies>
         <dependency>
