@@ -46,13 +46,13 @@ public class RiftLinkApp extends Application {
         // --- 2. Initialize Backend Services ---
         SecurityService securityService = new SecurityService();
         FileManager fileManager = new FileManager(sharedDir, downloadsDir);
-        p2pService = new P2PService(Constants.DEFAULT_P2P_PORT);
+        p2pService = new P2PService(Constants.P2P_PORT);
         uploadManager = new UploadManager(securityService, fileManager, sharedDir);
         downloadManager = new DownloadManager(p2pService, securityService, fileManager, downloadsDir);
 
         // --- 3. Start Networking Services ---
         handleBootstrapping();
-        uploadManager.start(Constants.DEFAULT_P2P_PORT);
+        uploadManager.start(Constants.UPLOAD_PORT);
 
         // --- 4. Initialize ViewModel and UI ---
         MainViewModel viewModel = new MainViewModel(p2pService, fileManager, downloadManager);
@@ -66,7 +66,7 @@ public class RiftLinkApp extends Application {
         Parameters params = getParameters();
         List<String> args = params.getRaw();
         InetAddress bootstrapAddress = null;
-        int bootstrapPort = Constants.DEFAULT_P2P_PORT;
+        int bootstrapPort = Constants.P2P_PORT;
 
         if (!args.isEmpty()) {
             try {

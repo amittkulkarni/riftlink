@@ -14,7 +14,12 @@ public final class Constants {
     /**
      * The default port for the application to listen on for P2P connections.
      */
-    public static final int DEFAULT_P2P_PORT = 4001;
+    public static final int P2P_PORT = 4001;
+
+    /**
+     * The port for the application to listen on for file uploads.
+     */
+    public static final int UPLOAD_PORT = 4443;
 
     /**
      * The file extension for RiftLink metadata files.
