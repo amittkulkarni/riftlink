@@ -3,6 +3,7 @@ package com.riftlink.p2p.service;
 import com.riftlink.p2p.model.RiftFile;
 import com.riftlink.p2p.ui.model.DownloadItem;
 import com.riftlink.p2p.util.Hashing;
+import com.riftlink.p2p.util.Constants;
 import net.tomp2p.peers.PeerAddress;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -101,13 +102,15 @@ public class DownloadManager {
             // Simple strategy: try peers one by one until success.
             for (PeerAddress peer : peers) {
                 try (
-                    SSLSocket socket = securityService.createSocket(peer.inetAddress().getHostAddress(), peer.tcpPort());
+                    // FIX 1: Use upload port (4443) instead of DHT port
+                    SSLSocket socket = securityService.createSocket(peer.inetAddress().getHostAddress(), Constants.UPLOAD_PORT);
                     PrintWriter writer = new PrintWriter(socket.getOutputStream(), true);
                     InputStream inputStream = socket.getInputStream()
                 ) {
-                    // Protocol: Send infohash, then chunk index, each on a new line
-                    writer.println(infohash);
-                    writer.println(chunkIndex);
+                    // FIX 2: Use correct protocol - send infohash directly (not "GET_RIFT")
+                    // This matches the UploadManager's chunk request protocol
+                    writer.println(infohash);      // First line: infohash (for chunk request)
+                    writer.println(chunkIndex);    // Second line: chunk index
 
                     byte[] chunkData = inputStream.readAllBytes();
                     
@@ -115,8 +118,14 @@ public class DownloadManager {
                     String expectedHash = riftFile.chunkHashes().get(chunkIndex);
                     String actualHash = Hashing.sha256(chunkData);
 
+                    // Add detailed logging for debugging
+                    logger.debug("Chunk {} - Expected hash: {}", chunkIndex, expectedHash);
+                    logger.debug("Chunk {} - Actual hash: {}", chunkIndex, actualHash);
+                    logger.debug("Chunk {} - Size: {} bytes", chunkIndex, chunkData.length);
+
                     if (!expectedHash.equals(actualHash)) {
-                        throw new IOException("Chunk hash mismatch for index " + chunkIndex);
+                        throw new IOException("Chunk hash mismatch for index " + chunkIndex + 
+                                            ". Expected: " + expectedHash + ", Got: " + actualHash);
                     }
 
                     // Save chunk to disk

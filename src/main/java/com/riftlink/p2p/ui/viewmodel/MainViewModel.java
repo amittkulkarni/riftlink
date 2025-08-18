@@ -19,6 +19,9 @@ import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLSocket;
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -59,17 +62,36 @@ public class MainViewModel {
     public void shareFile(File file) {
         CompletableFuture.runAsync(() -> {
             try {
-                RiftFile riftFile = fileManager.createRiftFile(file);
+                // Get the shared directory from FileManager
+                Path sharedDirectory = fileManager.getSharedDirectory();
+                Path targetPath = sharedDirectory.resolve(file.getName());
+                
+                // Copy the selected file to shared directory if not already there
+                if (!Files.exists(targetPath)) {
+                    Files.copy(file.toPath(), targetPath, StandardCopyOption.REPLACE_EXISTING);
+                    logger.info("Copied file to shared directory: {} -> {}", 
+                            file.getAbsolutePath(), targetPath.toAbsolutePath());
+                } else {
+                    logger.info("File already exists in shared directory: {}", targetPath);
+                }
+                
+                // Create RiftFile metadata from the file in shared directory
+                RiftFile riftFile = fileManager.createRiftFile(targetPath.toFile());
                 String infohash = Hashing.createInfoHash(riftFile);
-                p2pService.announceFile(infohash).join(); // wait for announcement to complete
+                
+                // Announce to DHT
+                p2pService.announceFile(infohash).join();
+                
                 Platform.runLater(() -> libraryItems.add(file.getName()));
                 logger.info("Successfully shared file {} with infohash {}", file.getName(), infohash);
+                
             } catch (IOException e) {
                 logger.error("Could not share file " + file.getName(), e);
-                // In a real app, show an error dialog to the user
+                // Show error to user in UI
             }
         });
     }
+
 
     /**
      * Initiates a search on the DHT for a given query.

@@ -157,4 +157,8 @@ public class FileManager {
         
         Files.writeString(riftFilePath, json, StandardCharsets.UTF_8);
     }
+
+    public Path getSharedDirectory() {
+        return sharedDirectory;
+    }
 }
