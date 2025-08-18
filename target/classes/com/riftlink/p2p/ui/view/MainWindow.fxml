@@ -18,7 +18,7 @@
 <?import javafx.scene.text.Font?>
 
 <BorderPane xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1"
-            fx:controller="com.riftlink.p2p.ui.controller.MainWindowController"
+            fx:controller="com.riftlink.p2p.ui.viewmodel.MainWindowController"
             prefHeight="600.0" prefWidth="800.0">
     <center>
         <TabPane tabClosingPolicy="UNAVAILABLE">

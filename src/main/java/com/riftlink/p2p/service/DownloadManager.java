@@ -1,6 +1,5 @@
 package com.riftlink.p2p.service;
 
-import com.google.gson.Gson;
 import com.riftlink.p2p.model.RiftFile;
 import com.riftlink.p2p.ui.model.DownloadItem;
 import com.riftlink.p2p.util.Hashing;

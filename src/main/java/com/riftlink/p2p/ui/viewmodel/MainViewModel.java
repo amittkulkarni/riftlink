@@ -1,4 +1,4 @@
-package com.riftlink.p2p.viewmodel;
+package com.riftlink.p2p.ui.viewmodel;
 
 import com.google.gson.Gson;
 import com.riftlink.p2p.model.RiftFile;
@@ -19,10 +19,6 @@ import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLSocket;
 import java.io.*;
-import java.net.Socket;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
-import java.util.Collection;
 import java.util.concurrent.CompletableFuture;
 
 /**

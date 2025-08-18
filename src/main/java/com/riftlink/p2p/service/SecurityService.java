@@ -5,13 +5,11 @@ import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.*;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.*;
-import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 
 /**

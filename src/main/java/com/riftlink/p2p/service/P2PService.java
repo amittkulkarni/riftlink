@@ -1,6 +1,8 @@
 package com.riftlink.p2p.service;
 
 import com.riftlink.p2p.util.Constants;
+import com.riftlink.p2p.util.NetworkUtils;
+import net.tomp2p.connection.Bindings;
 import net.tomp2p.dht.FutureGet;
 import net.tomp2p.dht.FuturePut;
 import net.tomp2p.dht.PeerBuilderDHT;
@@ -36,8 +38,9 @@ public class P2PService {
     public CompletableFuture<Void> start(InetAddress bootstrapAddress, int bootstrapPort) {
         return CompletableFuture.runAsync(() -> {
             try {
-                // Corrected PeerDHT initialization
-                Peer master = new PeerBuilder(new Number160(new SecureRandom())).ports(port).start();
+                Bindings bindings = NetworkUtils.getBestBindings();
+
+                Peer master = new PeerBuilder(new Number160(new SecureRandom())).ports(port).bindings(bindings).start();
                 peer = new PeerBuilderDHT(master).start();
 
                 logger.info("Peer started with ID: {}. Listening on port: {}", peer.peerID(), port);

@@ -1,8 +1,8 @@
-package com.riftlink.p2p.ui.controller;
+package com.riftlink.p2p.ui.viewmodel;
 
 import com.riftlink.p2p.ui.model.DownloadItem;
 import com.riftlink.p2p.ui.model.SearchResult;
-import com.riftlink.p2p.viewmodel.MainViewModel;
+import com.riftlink.p2p.ui.viewmodel.MainViewModel;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.ProgressBarTableCell;

@@ -1,9 +1,9 @@
 package com.riftlink.p2p;
 
 import com.riftlink.p2p.service.*;
-import com.riftlink.p2p.ui.controller.MainWindowController;
+import com.riftlink.p2p.ui.viewmodel.MainViewModel;
+import com.riftlink.p2p.ui.viewmodel.MainWindowController;
 import com.riftlink.p2p.util.Constants;
-import com.riftlink.p2p.viewmodel.MainViewModel;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
