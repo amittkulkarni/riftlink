@@ -14,3 +14,4 @@ com\riftlink\p2p\service\UploadManager.class
 com\riftlink\p2p\service\P2PService.class
 com\riftlink\p2p\ui\model\DownloadItem.class
 com\riftlink\p2p\ui\controller\MainWindowController.class
+com\riftlink\p2p\Main.class

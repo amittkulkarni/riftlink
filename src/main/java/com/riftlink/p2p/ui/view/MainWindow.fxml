@@ -44,7 +44,7 @@
                                 </TableColumn>
                                 <TableColumn text="Progress" prefWidth="200">
                                     <cellValueFactory><PropertyValueFactory property="progress"/></cellValueFactory>
-                                    <cellFactory><ProgressBarTableCell/></cellFactory>
+                                    <cellFactory><ProgressBarTableCell/>
                                 </TableColumn>
                                 <TableColumn text="Speed" prefWidth="100">
                                     <cellValueFactory><PropertyValueFactory property="speed"/></cellValueFactory>
