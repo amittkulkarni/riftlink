@@ -55,7 +55,7 @@ public class RiftLinkApp extends Application {
         uploadManager.start(Constants.UPLOAD_PORT);
 
         // --- 4. Initialize ViewModel and UI ---
-        MainViewModel viewModel = new MainViewModel(p2pService, fileManager, downloadManager);
+        MainViewModel viewModel = new MainViewModel(p2pService, fileManager, downloadManager, securityService);
         loadUI(primaryStage, viewModel);
     }
 

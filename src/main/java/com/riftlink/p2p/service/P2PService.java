@@ -1,5 +1,6 @@
 package com.riftlink.p2p.service;
 
+import com.riftlink.p2p.util.Constants;
 import net.tomp2p.dht.FutureGet;
 import net.tomp2p.dht.FuturePut;
 import net.tomp2p.dht.PeerBuilderDHT;
@@ -70,7 +71,12 @@ public class P2PService {
 
         try {
             // Data object can throw IOException, so it needs to be handled.
-            Data data = new Data(peer.peerAddress());
+
+            PeerAddress uploadPeerAddress = peer.peerAddress()
+            .changeAddress(peer.peerAddress().inetAddress())
+            .changePorts(Constants.UPLOAD_PORT, Constants.UPLOAD_PORT);
+
+            Data data = new Data(uploadPeerAddress);
 
             peer.put(contentKey).data(data).start().addListener(new BaseFutureListener<FuturePut>() {
                 @Override

@@ -5,9 +5,11 @@ import com.riftlink.p2p.model.RiftFile;
 import com.riftlink.p2p.service.DownloadManager;
 import com.riftlink.p2p.service.FileManager;
 import com.riftlink.p2p.service.P2PService;
+import com.riftlink.p2p.service.SecurityService;
 import com.riftlink.p2p.ui.model.DownloadItem;
 import com.riftlink.p2p.ui.model.SearchResult;
 import com.riftlink.p2p.util.Hashing;
+import com.riftlink.p2p.util.Constants;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -34,16 +36,18 @@ public class MainViewModel {
     private final P2PService p2pService;
     private final FileManager fileManager;
     private final DownloadManager downloadManager;
+    private final SecurityService securityService;
 
     // UI State
     private final ObservableList<DownloadItem> downloadItems = FXCollections.observableArrayList();
     private final ObservableList<String> libraryItems = FXCollections.observableArrayList();
     private final ObservableList<SearchResult> searchResults = FXCollections.observableArrayList();
 
-    public MainViewModel(P2PService p2pService, FileManager fileManager, DownloadManager downloadManager) {
+    public MainViewModel(P2PService p2pService, FileManager fileManager, DownloadManager downloadManager, SecurityService securityService) {
         this.p2pService = p2pService;
         this.fileManager = fileManager;
         this.downloadManager = downloadManager;
+        this.securityService = securityService;
     }
 
     // --- Getters for UI State ---
@@ -119,12 +123,17 @@ public class MainViewModel {
     }
     
     private CompletableFuture<RiftFile> fetchRiftFileFromPeer(String infohash, PeerAddress peer) {
-        // This is a simplified protocol to fetch the .rift file content.
-        // It's not part of the chunk transfer protocol. We can use a simple socket connection.
-        // NOTE: For simplicity, this uses a plain socket. In a real app, this should also be secured.
-        return CompletableFuture.supplyAsync(() -> {
-            try (Socket socket = new Socket(peer.inetAddress(), peer.tcpPort());
-                 PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+    return CompletableFuture.supplyAsync(() -> {
+        SSLSocket socket = null;
+        try {
+            String host = peer.inetAddress().getHostAddress();
+            int uploadPort = Constants.UPLOAD_PORT;
+            
+            // Create SSL socket
+            socket = securityService.createSocket(host, uploadPort);
+            
+            // Use try-with-resources for streams only
+            try (PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
                  BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
                 
                 // A special request type to distinguish from chunk requests
@@ -139,10 +148,21 @@ public class MainViewModel {
                 }
                 
                 return new Gson().fromJson(jsonBuilder.toString(), RiftFile.class);
-            } catch (IOException e) {
-                logger.error("Failed to fetch .rift file from peer " + peer, e);
-                return null;
             }
-        });
-    }
+            
+        } catch (IOException e) {
+            logger.error("Failed to fetch .rift file from peer " + peer, e);
+            return null;
+        } finally {
+            // Manually close the socket
+            if (socket != null) {
+                try {
+                    socket.close();
+                } catch (IOException e) {
+                    logger.error("Error closing SSLSocket", e);
+                }
+            }
+        }
+    });
+}   
 }
