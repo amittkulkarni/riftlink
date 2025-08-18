@@ -5,6 +5,7 @@ import com.riftlink.p2p.ui.model.SearchResult;
 import com.riftlink.p2p.viewmodel.MainViewModel;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
+import javafx.scene.control.cell.ProgressBarTableCell;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import java.io.File;
@@ -25,6 +26,7 @@ public class MainWindowController {
     @FXML private ListView<String> libraryListView;
     @FXML private TextField portTextField;
     @FXML private TextField downloadsFolderTextField;
+    @FXML private TableColumn<DownloadItem, Double> progressColumn;
 
     // To be called by the main application to inject the ViewModel
     public void initViewModel(MainViewModel viewModel) {
@@ -37,6 +39,9 @@ public class MainWindowController {
      */
     @FXML
     public void initialize() {
+
+        setupProgressColumn();
+
         // Set up double-click action on search results to start a download
         searchResultsTable.setRowFactory(tv -> {
             TableRow<SearchResult> row = new TableRow<>();
@@ -48,6 +53,19 @@ public class MainWindowController {
             });
             return row;
         });
+    }
+
+    private void setupProgressColumn() {
+        // If you have a direct reference to the column from FXML
+        if (progressColumn != null) {
+            progressColumn.setCellFactory(ProgressBarTableCell.<DownloadItem>forTableColumn());
+        } else {
+            // Alternative: Find the progress column by index (it's the 2nd column, index 1)
+            @SuppressWarnings("unchecked")
+            TableColumn<DownloadItem, Double> progCol = 
+                (TableColumn<DownloadItem, Double>) downloadsTable.getColumns().get(1);
+            progCol.setCellFactory(ProgressBarTableCell.<DownloadItem>forTableColumn());
+        }
     }
 
     /**
