@@ -14,7 +14,7 @@ public class SearchResult {
     private final StringProperty size = new SimpleStringProperty();
     private final IntegerProperty peers = new SimpleIntegerProperty();
     private final String infohash;
-    private RiftFile riftFile; // Can be null until fetched
+    private RiftFile riftFile; 
 
     public SearchResult(String infohash, String filename, long totalSize, int peerCount) {
         this.infohash = infohash;
@@ -36,7 +36,8 @@ public class SearchResult {
     public IntegerProperty peersProperty() { return peers; }
 
     // --- Standard Getters ---
-    public String getInfohash() { return infohash; }
+    public String getInfoHash() { return infohash; }
+    public String getFilename() { return filename.get(); }
     public RiftFile getRiftFile() { return riftFile; }
     public void setRiftFile(RiftFile riftFile) { this.riftFile = riftFile; }
 }

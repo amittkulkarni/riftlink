@@ -14,9 +14,11 @@ public class DownloadItem {
     private final StringProperty status = new SimpleStringProperty();
     private final DoubleProperty progress = new SimpleDoubleProperty();
     private final StringProperty speed = new SimpleStringProperty();
+    private final String infohash;
 
-    public DownloadItem(String filename) {
+    public DownloadItem(String filename, String infohash) {
         this.filename.set(filename);
+        this.infohash = infohash;
         this.status.set("Starting...");
         this.progress.set(0.0);
         this.speed.set("0 KB/s");
@@ -30,6 +32,7 @@ public class DownloadItem {
 
     // --- Standard Getters/Setters for convenience ---
     public String getFilename() { return filename.get(); }
+    public String getInfoHash() { return infohash; }
     public void setStatus(String status) { this.status.set(status); }
     public void setProgress(double progress) { this.progress.set(progress); }
     public void setSpeed(String speed) { this.speed.set(speed); }

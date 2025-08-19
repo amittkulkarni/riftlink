@@ -22,6 +22,7 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -132,14 +133,60 @@ public class MainViewModel {
             logger.error("Cannot start download, search result or its metadata is null.");
             return;
         }
+
+        boolean alreadyDownloading = downloadItems.stream()
+            .anyMatch(item -> item.getInfoHash().equals(selectedResult.getInfoHash()));
+
+        if (alreadyDownloading) {
+            logger.warn("Download for {} is already in progress.", selectedResult.getFilename());
+            return;
+        }
         
         RiftFile riftFile = selectedResult.getRiftFile();
-        DownloadItem newItem = new DownloadItem(riftFile.filename());
+        DownloadItem newItem = new DownloadItem(selectedResult.getFilename(), selectedResult.getInfoHash());
         Platform.runLater(() -> downloadItems.add(newItem));
         
-        downloadManager.startDownload(riftFile, selectedResult.getInfohash(), newItem);
+        downloadManager.startDownload(riftFile, selectedResult.getInfoHash(), newItem);
     }
     
+    public void pauseDownload(DownloadItem selected) {
+        logger.info("Pausing download for: {}", selected.getFilename());
+        downloadManager.pauseDownload(selected.getInfoHash());
+    }
+
+    public void resumeDownload(DownloadItem selected) {
+        logger.info("Resuming download for: {}", selected.getFilename());
+        downloadManager.resumeDownload(selected.getInfoHash());
+    }
+
+    public void cancelDownload(DownloadItem selected) {
+        logger.info("Cancelling download for: {}", selected.getFilename());
+        downloadManager.cancelDownload(selected.getInfoHash());
+        Platform.runLater(() -> downloadItems.remove(selected));
+    }
+
+    public void removeSharedFile(String selectedFilename) {
+        getInfoHashForLibraryFile(selectedFilename).ifPresent(infoHash -> {
+            logger.info("Stopping sharing for file: {}", selectedFilename);
+            p2pService.stopAnnouncing(infoHash); 
+            fileManager.removeSharedFile(selectedFilename); 
+            updateLibraryFiles(); // Refresh the library view
+        });
+    }
+
+    public Optional<String> getInfoHashForLibraryFile(String filename) {
+        // This assumes FileManager can retrieve a RiftFile by its name
+        return fileManager.getSharedRiftFile(filename)
+                .map(Hashing::createInfoHash);
+    }
+
+    private void updateLibraryFiles() {
+        Platform.runLater(() -> {
+            libraryItems.clear();
+            libraryItems.addAll(fileManager.getSharedFileNames());
+        });
+    }
+
     private CompletableFuture<RiftFile> fetchRiftFileFromPeer(String infohash, PeerAddress peer) {
     return CompletableFuture.supplyAsync(() -> {
         SSLSocket socket = null;

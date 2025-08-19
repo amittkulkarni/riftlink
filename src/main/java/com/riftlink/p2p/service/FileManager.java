@@ -16,6 +16,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Manages all file system interactions: creating .rift files, reading/writing chunks,
@@ -145,6 +148,66 @@ public class FileManager {
     }
 
     /**
+     * Finds and loads a RiftFile from the shared directory based on its filename.
+     * @param filename The original filename to search for.
+     * @return An Optional containing the RiftFile if found.
+     */
+    public Optional<RiftFile> getSharedRiftFile(String filename) {
+        try (Stream<Path> paths = Files.walk(sharedDirectory)) {
+            return paths
+                .filter(path -> path.toString().endsWith(Constants.METADATA_EXTENSION))
+                .map(this::loadRiftFileFromPath)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .filter(riftFile -> riftFile.filename().equals(filename))
+                .findFirst();
+        } catch (IOException e) {
+            logger.error("Could not read shared directory to find .rift file", e);
+            return Optional.empty();
+        }
+    }
+
+    /**
+     * Removes a shared file and its corresponding .rift metadata file.
+     * @param filename The filename of the file to remove.
+     */
+    public void removeSharedFile(String filename) {
+        getSharedRiftFile(filename).ifPresent(riftFile -> {
+            try {
+                String infohash = Hashing.createInfoHash(riftFile);
+                Path originalFilePath = sharedDirectory.resolve(filename);
+                Path riftFilePath = sharedDirectory.resolve(infohash + Constants.METADATA_EXTENSION);
+
+                Files.deleteIfExists(originalFilePath);
+                Files.deleteIfExists(riftFilePath);
+
+                logger.info("Successfully removed shared file and its metadata: {}", filename);
+            } catch (IOException e) {
+                logger.error("Failed to delete files for: {}", filename, e);
+            }
+        });
+    }
+
+    /**
+     * Gets a list of all shared file names by reading the .rift files.
+     * @return A list of filenames.
+     */
+    public List<String> getSharedFileNames() {
+        try (Stream<Path> paths = Files.walk(sharedDirectory)) {
+            return paths
+                .filter(path -> path.toString().endsWith(Constants.METADATA_EXTENSION))
+                .map(this::loadRiftFileFromPath)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .map(RiftFile::filename)
+                .collect(Collectors.toList());
+        } catch (IOException e) {
+            logger.error("Failed to read shared directory for file list", e);
+            return new ArrayList<>();
+        }
+    }
+
+    /**
      * Saves a RiftFile metadata object as a JSON file in the shared directory.
      * @param riftFile The metadata to save.
      */
@@ -156,6 +219,16 @@ public class FileManager {
         String json = gson.toJson(riftFile);
         
         Files.writeString(riftFilePath, json, StandardCharsets.UTF_8);
+    }
+
+    private Optional<RiftFile> loadRiftFileFromPath(Path riftFilePath) {
+        try {
+            String json = Files.readString(riftFilePath, StandardCharsets.UTF_8);
+            return Optional.of(new Gson().fromJson(json, RiftFile.class));
+        } catch (IOException e) {
+            logger.error("Failed to read or parse .rift file: {}", riftFilePath, e);
+            return Optional.empty();
+        }
     }
 
     public Path getSharedDirectory() {

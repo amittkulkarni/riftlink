@@ -3,6 +3,8 @@ com\riftlink\p2p\ui\model\SearchResult.class
 com\riftlink\p2p\model\RiftFile.class
 com\riftlink\p2p\service\P2PService$1.class
 com\riftlink\p2p\util\Constants.class
+com\riftlink\p2p\service\P2PService$3.class
+com\riftlink\p2p\service\DownloadManager$DownloadTask.class
 com\riftlink\p2p\service\DownloadManager.class
 com\riftlink\p2p\model\PeerInfo.class
 com\riftlink\p2p\RiftLinkApp.class

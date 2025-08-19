@@ -3,12 +3,18 @@ package com.riftlink.p2p.ui.viewmodel;
 import com.riftlink.p2p.ui.model.DownloadItem;
 import com.riftlink.p2p.ui.model.SearchResult;
 import com.riftlink.p2p.ui.viewmodel.MainViewModel;
+
+import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
+import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.cell.ProgressBarTableCell;
+import javafx.scene.input.Clipboard;
+import javafx.scene.input.ClipboardContent;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import java.io.File;
+import java.util.Optional;
 
 /**
  * The Controller for the main application window (MainWindow.fxml).
@@ -118,5 +124,81 @@ public class MainWindowController {
         alert.setHeaderText(null);
         alert.setContentText(message);
         alert.showAndWait();
+    }
+
+       @FXML
+    protected void handleDownloadAction(ActionEvent event) {
+        SearchResult selected = searchResultsTable.getSelectionModel().getSelectedItem();
+        if (selected != null) {
+            viewModel.startDownload(selected);
+        }
+    }
+
+    @FXML
+    protected void handleCopyInfoHashAction(ActionEvent event) {
+        Optional<String> infoHashOpt = getSelectedInfoHash();
+
+        if(infoHashOpt.isPresent()) {
+            String infoHash = infoHashOpt.get();
+            final Clipboard clipboard = Clipboard.getSystemClipboard();
+            final ClipboardContent content = new ClipboardContent();
+            content.putString(infoHash);
+            clipboard.setContent(content);
+            showAlert(Alert.AlertType.INFORMATION, "Clipboard", "InfoHash copied to Clipboard!");    
+        } else {
+            showAlert(Alert.AlertType.WARNING, "Clipboard", "No item selected to copy InfoHash from.");
+        }
+
+    }
+
+    private Optional<String> getSelectedInfoHash() {
+        SearchResult searchResult = searchResultsTable.getSelectionModel().getSelectedItem();
+        if (searchResult != null) {
+            return Optional.ofNullable(searchResult.getInfoHash());
+        }
+
+        DownloadItem downloadItem = downloadsTable.getSelectionModel().getSelectedItem();
+        if (downloadItem != null) {
+            return Optional.ofNullable(downloadItem.getInfoHash()); 
+        }
+
+        String libraryFile = libraryListView.getSelectionModel().getSelectedItem();
+        if (libraryFile != null) {
+            return viewModel.getInfoHashForLibraryFile(libraryFile);
+        }
+
+        return Optional.empty();
+    }
+
+    @FXML
+    protected void handlePauseDownloadAction(ActionEvent event) {
+        DownloadItem selected = downloadsTable.getSelectionModel().getSelectedItem();
+        if (selected != null) {
+            viewModel.pauseDownload(selected);
+        }
+    }
+
+    @FXML
+    protected void handleResumeDownloadAction(ActionEvent event) {
+        DownloadItem selected = downloadsTable.getSelectionModel().getSelectedItem();
+        if (selected != null) {
+            viewModel.resumeDownload(selected);
+        }
+    }
+
+    @FXML
+    protected void handleCancelDownloadAction(ActionEvent event) {
+        DownloadItem selected = downloadsTable.getSelectionModel().getSelectedItem();
+        if (selected != null) {
+            viewModel.cancelDownload(selected);
+        }
+    }
+
+    @FXML
+    protected void handleRemoveFileAction(ActionEvent event) {
+        String selected = libraryListView.getSelectionModel().getSelectedItem();
+        if (selected != null) {
+            viewModel.removeSharedFile(selected);
+        }
     }
 }

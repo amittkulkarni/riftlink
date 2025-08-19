@@ -16,6 +16,8 @@
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
+<?import javafx.scene.control.ContextMenu?>
+<?import javafx.scene.control.MenuItem?>
 
 <BorderPane xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="com.riftlink.p2p.ui.viewmodel.MainWindowController"
@@ -42,6 +44,14 @@
                                     <cellValueFactory><PropertyValueFactory property="peers"/></cellValueFactory>
                                 </TableColumn>
                             </columns>
+                            <contextMenu>
+                                <ContextMenu>
+                                    <items>
+                                        <MenuItem text="Download" onAction="#handleDownloadAction"/>
+                                        <MenuItem text="Copy InfoHash" onAction="#handleCopyInfoHashAction"/>
+                                    </items>
+                                </ContextMenu>
+                            </contextMenu>
                         </TableView>
                     </VBox>
                 </Tab>
@@ -63,6 +73,16 @@
                                     <cellValueFactory><PropertyValueFactory property="status"/></cellValueFactory>
                                 </TableColumn>
                             </columns>
+                            <contextMenu>
+                                <ContextMenu>
+                                    <items>
+                                        <MenuItem text="Pause" onAction="#handlePauseDownloadAction"/>
+                                        <MenuItem text="Resume" onAction="#handleResumeDownloadAction"/>
+                                        <MenuItem text="Cancel" onAction="#handleCancelDownloadAction"/>
+                                        <MenuItem text="Copy InfoHash" onAction="#handleCopyInfoHashAction"/>
+                                    </items>
+                                </ContextMenu>
+                            </contextMenu>
                         </TableView>
                     </VBox>
                 </Tab>
@@ -73,7 +93,16 @@
                         <Label text="Your Shared Files">
                             <font><Font name="System Bold" size="14.0"/></font>
                         </Label>
-                        <ListView fx:id="libraryListView" VBox.vgrow="ALWAYS"/>
+                        <ListView fx:id="libraryListView" VBox.vgrow="ALWAYS">
+                           <contextMenu>
+                                <ContextMenu>
+                                    <items>
+                                        <MenuItem text="Remove" onAction="#handleRemoveFileAction"/>
+                                        <MenuItem text="Copy InfoHash" onAction="#handleCopyInfoHashAction"/>
+                                    </items>
+                                </ContextMenu>
+                            </contextMenu>
+                        </ListView>
                         <Button text="Share New File..." onAction="#handleShareFileAction" maxWidth="Infinity"/>
                     </VBox>
                 </Tab>

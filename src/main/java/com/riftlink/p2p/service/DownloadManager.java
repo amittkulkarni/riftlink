@@ -16,20 +16,51 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-/**
- * Manages the client-side logic for downloads.
- * It coordinates finding peers, downloading chunks in parallel, verifying hashes,
- * and reassembling the final file.
- */
 public class DownloadManager {
     private static final Logger logger = LoggerFactory.getLogger(DownloadManager.class);
-    private final ExecutorService downloadExecutor = Executors.newFixedThreadPool(10); // Limits concurrent chunk downloads
+    private final ExecutorService downloadExecutor = Executors.newFixedThreadPool(10);
     private final P2PService p2pService;
     private final SecurityService securityService;
     private final FileManager fileManager;
     private final Path downloadsDirectory;
+
+    private final ConcurrentMap<String, DownloadTask> activeDownloads = new ConcurrentHashMap<>();
+
+    /**
+     * Inner class to hold the state and future of an active download.
+     */
+    private static class DownloadTask {
+        // 'volatile' ensures that changes to this variable are visible across threads.
+        volatile CompletableFuture<Void> mainFuture;
+        final AtomicBoolean paused = new AtomicBoolean(false);
+        final AtomicBoolean cancelled = new AtomicBoolean(false);
+
+        // Constructor is now empty.
+        DownloadTask() {}
+
+        // Setter to associate the future after creation.
+        void setMainFuture(CompletableFuture<Void> mainFuture) {
+            this.mainFuture = mainFuture;
+        }
+
+        void cancel() {
+            cancelled.set(true);
+            if (mainFuture != null) {
+                mainFuture.cancel(true);
+            }
+        }
+
+        void pause() {
+            paused.set(true);
+        }
+
+        void resume() {
+            paused.set(false);
+        }
+    }
 
     public DownloadManager(P2PService p2pService, SecurityService securityService, FileManager fileManager, Path downloadsDirectory) {
         this.p2pService = p2pService;
@@ -38,114 +69,130 @@ public class DownloadManager {
         this.downloadsDirectory = downloadsDirectory;
     }
 
-    /**
-     * Starts the download process for a file.
-     * @param riftFile The metadata of the file to download.
-     * @param infohash The unique identifier (hash) of the file's metadata.
-     * @param downloadItem The UI model item to update with progress.
-     */
     public void startDownload(RiftFile riftFile, String infohash, DownloadItem downloadItem) {
-        CompletableFuture.runAsync(() -> {
+        // 1. Create the task and add it to the map immediately.
+        DownloadTask task = new DownloadTask();
+        activeDownloads.put(infohash, task);
+
+        // 2. Define the main future (the download logic).
+        CompletableFuture<Void> mainFuture = CompletableFuture.runAsync(() -> {
             try {
-                // 1. Find peers
+                if (task.cancelled.get()) return;
                 downloadItem.setStatus("Finding peers...");
+
                 Collection<PeerAddress> peers = p2pService.findPeers(infohash).get();
-                if (peers.isEmpty()) {
-                    logger.error("No peers found for infohash: {}", infohash);
-                    downloadItem.setStatus("Error: No peers found");
-                    return;
-                }
+                if (peers.isEmpty()) throw new RuntimeException("No peers found");
                 List<PeerAddress> peerList = new ArrayList<>(peers);
 
-                // 2. Prepare download directory
                 Path chunkDir = downloadsDirectory.resolve(infohash);
                 Files.createDirectories(chunkDir);
 
-                // 3. Download all chunks in parallel
                 downloadItem.setStatus("Downloading...");
                 int totalChunks = riftFile.getNumberOfChunks();
                 AtomicInteger completedChunks = new AtomicInteger(0);
 
                 List<CompletableFuture<Void>> chunkFutures = new ArrayList<>();
                 for (int i = 0; i < totalChunks; i++) {
+                    if (task.cancelled.get()) break;
+
+                    while (task.paused.get()) {
+                        Thread.sleep(500); // Wait while paused
+                        if (task.cancelled.get()) return;
+                    }
+
                     final int chunkIndex = i;
                     CompletableFuture<Void> future = downloadChunk(peerList, infohash, riftFile, chunkIndex, chunkDir)
                         .thenRun(() -> {
                             int completed = completedChunks.incrementAndGet();
-                            double progress = (double) completed / totalChunks;
-                            downloadItem.setProgress(progress);
+                            downloadItem.setProgress((double) completed / totalChunks);
                         });
                     chunkFutures.add(future);
                 }
 
-                // 4. Wait for all chunks to complete
                 CompletableFuture.allOf(chunkFutures.toArray(new CompletableFuture[0])).get();
 
-                // 5. Reassemble the file
+                if (task.cancelled.get()) {
+                    downloadItem.setStatus("Cancelled");
+                    return;
+                }
+
                 downloadItem.setStatus("Reassembling...");
                 fileManager.reassembleFile(riftFile, infohash);
                 downloadItem.setStatus("Completed");
                 downloadItem.setProgress(1.0);
 
             } catch (Exception e) {
-                logger.error("Download failed for infohash: " + infohash, e);
-                downloadItem.setStatus("Error: " + e.getMessage());
+                if (e instanceof InterruptedException || e instanceof CancellationException) {
+                    Thread.currentThread().interrupt();
+                    downloadItem.setStatus("Cancelled");
+                } else {
+                    logger.error("Download failed for infohash: " + infohash, e);
+                    downloadItem.setStatus("Error: " + e.getMessage());
+                }
+            } finally {
+                activeDownloads.remove(infohash);
             }
         });
+
+        // 3. Now that mainFuture exists, link it to the task.
+        task.setMainFuture(mainFuture);
     }
-    
-    /**
-     * Downloads a single chunk from an available peer. It will retry with different peers if one fails.
-     */
+
+    public void pauseDownload(String infohash) {
+        DownloadTask task = activeDownloads.get(infohash);
+        if (task != null) {
+            task.pause();
+            logger.info("Download paused for infohash: {}", infohash);
+        }
+    }
+
+    public void resumeDownload(String infohash) {
+        DownloadTask task = activeDownloads.get(infohash);
+        if (task != null) {
+            task.resume();
+            logger.info("Download resumed for infohash: {}", infohash);
+        }
+    }
+
+    public void cancelDownload(String infohash) {
+        DownloadTask task = activeDownloads.get(infohash);
+        if (task != null) {
+            task.cancel();
+            logger.info("Download cancelled for infohash: {}", infohash);
+        }
+    }
+
     private CompletableFuture<Void> downloadChunk(List<PeerAddress> peers, String infohash, RiftFile riftFile, int chunkIndex, Path chunkDir) {
         return CompletableFuture.runAsync(() -> {
-            // Simple strategy: try peers one by one until success.
             for (PeerAddress peer : peers) {
-                try (
-                    // FIX 1: Use upload port (4443) instead of DHT port
-                    SSLSocket socket = securityService.createSocket(peer.inetAddress().getHostAddress(), Constants.UPLOAD_PORT);
-                    PrintWriter writer = new PrintWriter(socket.getOutputStream(), true);
-                    InputStream inputStream = socket.getInputStream()
-                ) {
-                    // FIX 2: Use correct protocol - send infohash directly (not "GET_RIFT")
-                    // This matches the UploadManager's chunk request protocol
-                    writer.println(infohash);      // First line: infohash (for chunk request)
-                    writer.println(chunkIndex);    // Second line: chunk index
+                try (SSLSocket socket = securityService.createSocket(peer.inetAddress().getHostAddress(), Constants.UPLOAD_PORT);
+                     PrintWriter writer = new PrintWriter(socket.getOutputStream(), true);
+                     InputStream inputStream = socket.getInputStream()) {
+                    
+                    writer.println(infohash);
+                    writer.println(chunkIndex);
 
                     byte[] chunkData = inputStream.readAllBytes();
                     
-                    // Verify hash
                     String expectedHash = riftFile.chunkHashes().get(chunkIndex);
                     String actualHash = Hashing.sha256(chunkData);
 
-                    // Add detailed logging for debugging
-                    logger.debug("Chunk {} - Expected hash: {}", chunkIndex, expectedHash);
-                    logger.debug("Chunk {} - Actual hash: {}", chunkIndex, actualHash);
-                    logger.debug("Chunk {} - Size: {} bytes", chunkIndex, chunkData.length);
-
                     if (!expectedHash.equals(actualHash)) {
-                        throw new IOException("Chunk hash mismatch for index " + chunkIndex + 
-                                            ". Expected: " + expectedHash + ", Got: " + actualHash);
+                        throw new IOException("Chunk hash mismatch for index " + chunkIndex);
                     }
 
-                    // Save chunk to disk
                     Path chunkPath = chunkDir.resolve("chunk_" + chunkIndex);
                     Files.write(chunkPath, chunkData);
-                    logger.info("Successfully downloaded and verified chunk {}", chunkIndex);
-                    return; // Success, exit loop
+                    return;
                 } catch (Exception e) {
-                    logger.warn("Failed to download chunk {} from peer {}. Trying next peer. Reason: {}", chunkIndex, peer, e.getMessage());
+                    logger.warn("Failed to download chunk {} from peer {}. Reason: {}", chunkIndex, peer, e.getMessage());
                 }
             }
-            // If the loop completes without returning, all peers failed for this chunk.
-            throw new RuntimeException("Could not download chunk " + chunkIndex + " from any available peer.");
+            throw new RuntimeException("Could not download chunk " + chunkIndex + " from any peer.");
         }, downloadExecutor);
     }
     
-    /**
-     * Shuts down the download manager's thread pool.
-     */
-     public void shutdown() {
-        downloadExecutor.shutdown();
-     }
+    public void shutdown() {
+        downloadExecutor.shutdownNow();
+    }
 }

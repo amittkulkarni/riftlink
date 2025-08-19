@@ -5,6 +5,7 @@ import com.riftlink.p2p.util.NetworkUtils;
 import net.tomp2p.connection.Bindings;
 import net.tomp2p.dht.FutureGet;
 import net.tomp2p.dht.FuturePut;
+import net.tomp2p.dht.FutureRemove;
 import net.tomp2p.dht.PeerBuilderDHT;
 import net.tomp2p.dht.PeerDHT;
 import net.tomp2p.futures.BaseFutureListener;
@@ -102,6 +103,36 @@ public class P2PService {
             logger.error("Could not create Data object for announcement", e);
             future.completeExceptionally(e);
         }
+        return future;
+    }
+
+    /**
+     * Removes this peer's announcement from the DHT for a given infohash.
+     * @param infohash The infohash to stop announcing.
+     * @return A CompletableFuture that completes when the operation is finished.
+     */
+    public CompletableFuture<Void> stopAnnouncing(String infohash) {
+        CompletableFuture<Void> future = new CompletableFuture<>();
+        Number160 contentKey = Number160.createHash(infohash);
+        logger.info("Stopping announcement for infohash: {} (key: {})", infohash, contentKey);
+
+        peer.remove(contentKey).all().start().addListener(new BaseFutureListener<FutureRemove>() {
+            @Override
+            public void operationComplete(FutureRemove futureRemove) {
+                if (futureRemove.isSuccess()) {
+                    logger.info("Successfully removed announcement for infohash: {}", infohash);
+                    future.complete(null);
+                } else {
+                    logger.error("Failed to remove announcement for infohash: {}", futureRemove.failedReason());
+                    future.completeExceptionally(new RuntimeException("DHT remove failed: " + futureRemove.failedReason()));
+                }
+            }
+
+            @Override
+            public void exceptionCaught(Throwable t) {
+                future.completeExceptionally(t);
+            }
+        });
         return future;
     }
 
