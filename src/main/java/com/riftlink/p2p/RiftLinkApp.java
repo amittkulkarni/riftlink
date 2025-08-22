@@ -16,6 +16,7 @@ import java.net.InetAddress;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * The main entry point for the RiftLink P2P application.
@@ -89,6 +90,8 @@ public class RiftLinkApp extends Application {
     private void loadUI(Stage primaryStage, MainViewModel viewModel) throws IOException {
         FXMLLoader loader = new FXMLLoader(getClass().getResource("ui/view/MainWindow.fxml"));
         Scene scene = new Scene(loader.load());
+
+        scene.getStylesheets().add(Objects.requireNonNull(getClass().getResource("/styles.css")).toExternalForm());
 
         MainWindowController controller = loader.getController();
         controller.initViewModel(viewModel);
