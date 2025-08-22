@@ -33,6 +33,9 @@ public class DownloadItem {
     // --- Standard Getters/Setters for convenience ---
     public String getFilename() { return filename.get(); }
     public String getInfoHash() { return infohash; }
+    public String getStatus() { return status.get(); }  
+    public double getProgress() { return progress.get(); } 
+    public String getSpeed() { return speed.get(); }
     public void setStatus(String status) { this.status.set(status); }
     public void setProgress(double progress) { this.progress.set(progress); }
     public void setSpeed(String speed) { this.speed.set(speed); }

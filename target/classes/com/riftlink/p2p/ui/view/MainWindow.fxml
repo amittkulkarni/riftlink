@@ -26,21 +26,26 @@
         <TabPane tabClosingPolicy="UNAVAILABLE">
             <tabs>
                 <Tab text="Search">
-                    <VBox spacing="10" alignment="CENTER">
+                    <VBox spacing="10" alignment="TOP_LEFT">
                         <padding><Insets top="10" right="10" bottom="10" left="10"/></padding>
+                        
+                        <!-- Search Input Area -->
                         <HBox spacing="10" alignment="CENTER">
-                            <TextField fx:id="searchTextField" HBox.hgrow="ALWAYS" promptText="Search for files..."/>
-                            <Button text="Search" onAction="#handleSearchAction"/>
+                            <TextField fx:id="searchTextField" HBox.hgrow="ALWAYS" promptText="Enter infohash to search..."/>
+                            <Button text="Search" onAction="#handleSearchAction" styleClass="primary-button"/>
+                            <Button text="Clear" onAction="#handleClearSearchAction"/>
                         </HBox>
+                        
+                        <!-- Results Table -->
                         <TableView fx:id="searchResultsTable" VBox.vgrow="ALWAYS">
                             <columns>
-                                <TableColumn text="Filename" prefWidth="400">
+                                <TableColumn text="Filename" prefWidth="350">
                                     <cellValueFactory><PropertyValueFactory property="filename"/></cellValueFactory>
                                 </TableColumn>
-                                <TableColumn text="Size" prefWidth="150">
+                                <TableColumn text="Size" prefWidth="120">
                                     <cellValueFactory><PropertyValueFactory property="size"/></cellValueFactory>
                                 </TableColumn>
-                                <TableColumn text="Peers" prefWidth="100">
+                                <TableColumn text="Peers" prefWidth="80">
                                     <cellValueFactory><PropertyValueFactory property="peers"/></cellValueFactory>
                                 </TableColumn>
                             </columns>
@@ -53,23 +58,33 @@
                                 </ContextMenu>
                             </contextMenu>
                         </TableView>
+                        
+                        <!-- Action Buttons -->
+                        <HBox spacing="10" alignment="CENTER_LEFT">
+                            <Button fx:id="downloadButton" text="Download" onAction="#handleDownloadAction" 
+                                    styleClass="success-button" disable="true"/>
+                            <Button fx:id="copyHashButton" text="Copy Hash" onAction="#handleCopyInfoHashAction" 
+                                    disable="true"/>
+                            <Label fx:id="statusLabel" text="Select a file to see actions" styleClass="status-text"/>
+                        </HBox>
                     </VBox>
                 </Tab>
-
                 <Tab text="Downloads">
-                    <VBox>
+                    <VBox spacing="10">
+                        <padding><Insets top="10" right="10" bottom="10" left="10"/></padding>
+                        
                         <TableView fx:id="downloadsTable" VBox.vgrow="ALWAYS">
                             <columns>
-                                <TableColumn text="Filename" prefWidth="350">
+                                <TableColumn text="Filename" prefWidth="300">
                                     <cellValueFactory><PropertyValueFactory property="filename"/></cellValueFactory>
                                 </TableColumn>
-                                <TableColumn text="Progress" prefWidth="200" fx:id="progressColumn">
+                                <TableColumn text="Progress" prefWidth="150" fx:id="progressColumn">
                                     <cellValueFactory><PropertyValueFactory property="progress"/></cellValueFactory>
                                 </TableColumn>
                                 <TableColumn text="Speed" prefWidth="100">
                                     <cellValueFactory><PropertyValueFactory property="speed"/></cellValueFactory>
                                 </TableColumn>
-                                <TableColumn text="Status" prefWidth="150">
+                                <TableColumn text="Status" prefWidth="120">
                                     <cellValueFactory><PropertyValueFactory property="status"/></cellValueFactory>
                                 </TableColumn>
                             </columns>
@@ -84,9 +99,20 @@
                                 </ContextMenu>
                             </contextMenu>
                         </TableView>
+                        
+                        <!-- Download Control Buttons -->
+                        <HBox spacing="10" alignment="CENTER_LEFT">
+                            <Button fx:id="pauseButton" text="Pause" onAction="#handlePauseDownloadAction" 
+                                    disable="true"/>
+                            <Button fx:id="resumeButton" text="Resume" onAction="#handleResumeDownloadAction" 
+                                    disable="true"/>
+                            <Button fx:id="cancelButton" text="Cancel" onAction="#handleCancelDownloadAction" 
+                                    styleClass="danger-button" disable="true"/>
+                            <Button fx:id="copyHashDownloadButton" text="Copy Hash" onAction="#handleCopyInfoHashAction" 
+                                    disable="true"/>
+                        </HBox>
                     </VBox>
                 </Tab>
-
                 <Tab text="Library">
                     <VBox spacing="10">
                         <padding><Insets top="10" right="10" bottom="10" left="10"/></padding>

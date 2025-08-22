@@ -11,7 +11,6 @@ com\riftlink\p2p\RiftLinkApp.class
 com\riftlink\p2p\service\SecurityService.class
 com\riftlink\p2p\ui\viewmodel\MainViewModel.class
 com\riftlink\p2p\util\Hashing.class
-com\riftlink\p2p\util\NetworkUtils.class
 com\riftlink\p2p\ui\viewmodel\MainWindowController.class
 com\riftlink\p2p\service\FileManager.class
 com\riftlink\p2p\service\UploadManager.class
